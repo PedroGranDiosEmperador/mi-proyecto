@@ -1,4 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Google from "expo-auth-session/providers/google";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+//agregrado del deepseek
+import { makeRedirectUri } from 'expo-auth-session';
 import React from "react";
 import {
   Alert,
@@ -12,7 +17,67 @@ import {
   View
 } from "react-native";
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function Index() {
+const [userInfo, setUserInfo]= React.useState(null);
+// "Mostraremos un modal y preguntaremos con cual cuenta quiere iniciar sesion y tal"
+const [request, response, promptAsync ]= Google.useAuthRequest({
+  iosClientId: '901593060122-rlf1mgfobngpes4m04kptd5ok2mmb70o.apps.googleusercontent.com',
+  androidClientId: '901593060122-p565dql278att4j0iaocffcrqosjt531.apps.googleusercontent.com',
+  webClientId: '901593060122-oom01v8c3kvs7oh7s0a7j57cqooc1659.apps.googleusercontent.com',
+  //esta cosa me dijo deepseek que la pusiera xd
+    redirectUri: makeRedirectUri({
+      scheme: 'miproyecto', // Debe coincidir con app.json
+    }),
+})
+//"Usaremos un hook para manejar el inicio de sesion"
+React.useEffect(()=>{
+  handleSignInWIthGoogle()
+},[response])
+const getLocaluser=async()=>{
+  const data= await AsyncStorage.getItem("@user");
+  if (!data) return null;
+  return JSON.parse(data);
+};
+
+
+async function handleSignInWIthGoogle() {
+  const user=await getLocaluser();
+  if(!user){
+    if(response?.type==="success"){
+      getUserInfo(response.authentication?.accessToken);
+    }
+  } else{
+    setUserInfo(user);
+    
+  }
+}
+
+// He de suponer que esto es del API que no tenemos y no existe asi que XDDDD
+const getUserInfo= async(token:any)=>{
+  if(!token) return;
+  try{
+    const response= await fetch(
+         "https://www.googleapis.com/userinfo/v2/me",
+          {
+           headers:{Authorization: `Bearer ${token}` },
+           }
+    )
+    const user= await response.json();
+    await AsyncStorage.setItem("@user", JSON.stringify(user));
+    setUserInfo(user);
+  } catch(e){console.log(e)}
+}
+//Logs propuestos por la ia pedorra
+const handleSignIn = async () => {
+  console.log("Request ready:", request);
+  console.log("Prompting...");
+  const result = await promptAsync();
+  console.log("Result:", result);
+};
+
+
   const [numeroControl, setNumControl] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [nombre, setNombre] = React.useState("");
@@ -202,8 +267,8 @@ export default function Index() {
             <Button onPress={() => router.push("/(auth)/login")} title="Iniciar sesión" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Iniciar sesión con google</Text>
+          <TouchableOpacity style={styles.button} onPress={() => handleSignIn()}>
+          <Text style={styles.buttonText} >Iniciar sesión con google</Text>
         </TouchableOpacity>
           
           {/* Movil */}
