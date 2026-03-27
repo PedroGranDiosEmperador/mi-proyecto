@@ -2,9 +2,12 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Entypo from '@expo/vector-icons/Entypo';
 import { Tabs } from "expo-router";
 import React from "react";
+import { AuthProvider } from '../utils/authContext';
 
 export default function TabLayout() {
   return (
+    // Envolvemos a la aplicacion con el AuthProvider para que sea accesible en todos lados
+    <AuthProvider>
     <Tabs>
       <Tabs.Screen 
         name="index" 
@@ -40,5 +43,6 @@ export default function TabLayout() {
       />
 
     </Tabs>
+    </AuthProvider>
   );
 }

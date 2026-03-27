@@ -1,10 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Google from "expo-auth-session/providers/google";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 //agregrado del deepseek
 import { makeRedirectUri } from 'expo-auth-session';
-import React from "react";
+import React, { useContext } from "react";
 import {
   Alert,
   Button,
@@ -16,10 +16,20 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
+import { AuthContext, AuthProvider } from "./utils/authContext";
 
 WebBrowser.maybeCompleteAuthSession();
 
+//Segundo tutorial de Autenthication de un login FLow -"building a Login flow with Expo Router" de expo
+const isLoggedIn= false;
+//Recuperamos contexto de Autorizacion
+const authContext= useContext(AuthContext);
+
 export default function Index() {
+  //En el tutorial cuando alguien no esta loggeado al login, aca haremos lo inverso por cuestion de la estructura del proyecto xd
+  if(isLoggedIn){
+    return <Redirect href={"/(tabs)/main"}/>
+  }
 const [userInfo, setUserInfo]= React.useState(null);
 // "Mostraremos un modal y preguntaremos con cual cuenta quiere iniciar sesion y tal"
 const [request, response, promptAsync ]= Google.useAuthRequest({
@@ -35,22 +45,26 @@ const [request, response, promptAsync ]= Google.useAuthRequest({
 React.useEffect(()=>{
   handleSignInWIthGoogle()
 },[response])
+//GetLocalUser que uhhh no creo que tengamos que hago 
 const getLocaluser=async()=>{
   const data= await AsyncStorage.getItem("@user");
   if (!data) return null;
   return JSON.parse(data);
 };
 
-
+//Aca se llama un usario local que estoy segurisimo que no tenemos asi que que pedo
+//Bruh que porongas hago con este pedazo de codigo re inutil
 async function handleSignInWIthGoogle() {
   const user=await getLocaluser();
   if(!user){
     if(response?.type==="success"){
       getUserInfo(response.authentication?.accessToken);
+        console.log("TEST TEST pero la puta madre loggeate");
+        authContext.logIn;
     }
   } else{
     setUserInfo(user);
-    
+    console.log("Que porongas esta pasando eh eh")
   }
 }
 
@@ -75,6 +89,7 @@ const handleSignIn = async () => {
   console.log("Prompting...");
   const result = await promptAsync();
   console.log("Result:", result);
+
 };
 
 
@@ -228,57 +243,60 @@ const handleSignIn = async () => {
   });
   
     return (
-      <View
-        style={[
-          styles.container,
-          isWeb && isDesktop ? styles.row : styles.column,
-        ]}
-      >
-        {/* Imagen izquierda */}
-        {isWeb && isDesktop && (
-          <View style={styles.leftPanel}>
-            <Text style={styles.logo}>Appi</Text>
-            <Text style={styles.quote}>
-              "APPI EN DESARROLLO"
-            </Text>
-          </View>
-        )}
-  
-        {/* Registro */}
-        <View style={styles.loginPanel}>
-          <Text style={styles.title}>Bienvenido al registro</Text>
-          <Text style={styles.title}>Instituto Tecnológico de la Piedad</Text>
-
-          <Text style={styles.label}>Nombre completo</Text>
-          <TextInput style={styles.input} placeholder="" />
-  
-          <Text style={styles.label}>Número de control</Text>
-          <TextInput style={styles.input} placeholder="" />
-  
-          <Text style={styles.label}>Contraseña</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder=""
-            secureTextEntry
-          />
-  
-          <TouchableOpacity style={styles.button}>
-            <Button onPress={() => router.push("/(auth)/login")} title="Iniciar sesión" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.button} onPress={() => handleSignIn()}>
-          <Text style={styles.buttonText} >Iniciar sesión con google</Text>
-        </TouchableOpacity>
-          
-          {/* Movil */}
-          {!isDesktop && (
-            <View style={styles.mobileFooter}>
-              <Text style={{ color: "white" }}>MindBox® 2026</Text>
+      //Lo que se explica en el layout, se envuelve a la aplicacion con el provider para que sea accesible en todos lados, 
+      // pero nuestra pantalla de registro esta fuera de ella por el momento
+      <AuthProvider>
+        <View
+          style={[
+            styles.container,
+            isWeb && isDesktop ? styles.row : styles.column,
+          ]}
+        >
+          {/* Imagen izquierda */}
+          {isWeb && isDesktop && (
+            <View style={styles.leftPanel}>
+              <Text style={styles.logo}>Appi</Text>
+              <Text style={styles.quote}>
+                "APPI EN DESARROLLO"
+              </Text>
             </View>
           )}
+    
+          {/* Registro */}
+          <View style={styles.loginPanel}>
+            <Text style={styles.title}>Bienvenido al registro</Text>
+            <Text style={styles.title}>Instituto Tecnológico de la Piedad</Text>
+
+            <Text style={styles.label}>Nombre completo</Text>
+            <TextInput style={styles.input} placeholder="" />
+    
+            <Text style={styles.label}>Número de control</Text>
+            <TextInput style={styles.input} placeholder="" />
+    
+            <Text style={styles.label}>Contraseña</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder=""
+              secureTextEntry
+            />
+    
+            <TouchableOpacity style={styles.button}>
+              <Button onPress={() => authContext.logIn} title="Iniciar sesión" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => promptAsync()}>
+            <Text style={styles.buttonText} >Iniciar sesión con google</Text>
+          </TouchableOpacity>
+            
+            {/* Movil */}
+            {!isDesktop && (
+              <View style={styles.mobileFooter}>
+                <Text style={{ color: "white" }}>MindBox® 2026</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-      
+      </AuthProvider>
     );
 }
